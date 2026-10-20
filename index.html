@@ -206,7 +206,7 @@ async function loadWeeklyCount() {
     try {
 
         const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=id`,
+            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=online_name`,
             {
                 headers: {
                     "apikey": SUPABASE_KEY,
@@ -221,7 +221,10 @@ async function loadWeeklyCount() {
             Array.isArray(data) ? data.length : 0;
 
     } catch (error) {
+
         console.error(error);
+
+        document.getElementById("signupCounter").textContent = "0";
     }
 }
 
