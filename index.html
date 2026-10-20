@@ -113,12 +113,6 @@ button:disabled{
     font-weight:bold;
     color:#4285f4;
 }
-
-.counter-subtitle{
-    font-size:12px;
-    color:#666;
-    margin-top:5px;
-}
 </style>
 </head>
 
@@ -126,41 +120,24 @@ button:disabled{
 
 <div class="container">
 
-<h1>
-Top Lords Kingdom 4 Weekly Event Check In
-</h1>
+<h1>Top Lords Kingdom 4 Weekly Event Check In</h1>
 
 <p id="weekDisplay"></p>
 
 <label>
 Name / 姓名 / नाम / Nombre / Nom / Name / الاسم / Имя
 </label>
-
-<input
-id="onlineName"
-type="text"
-maxlength="20"
-required>
+<input id="onlineName" type="text" maxlength="20" required>
 
 <label>
 Alliance / 聯盟 / गठबंधन / Alianza / Alliance / Allianz / التحالف / Альянс
 </label>
-
-<input
-id="alliance"
-type="text"
-maxlength="20"
-required>
+<input id="alliance" type="text" maxlength="20" required>
 
 <label>
 Main Squad Power / 主力部隊戰力 / मुख्य दस्ते की शक्ति / Poder del Escuadrón Principal / Puissance de l'Escouade Principale / Stärke des Haupttrupps / قوة الفريق الرئيسي / Мощь основного отряда
 </label>
-
-<input
-id="squadPower"
-type="text"
-maxlength="20"
-required>
+<input id="squadPower" type="text" maxlength="20" required>
 
 <button id="submitButton" onclick="submitCheckin()">
 Submit Weekly Check In
@@ -183,90 +160,74 @@ Gesamtanmeldungen Diese Woche /
 
 <div id="signupCounter">0</div>
 
-<div class="counter-subtitle">
-Current Week Registrations
-</div>
-
 </div>
 
 </div>
 
 <script>
-
 const SUPABASE_URL =
 "https://akuiucyughszpnitzxju.supabase.co";
 
 const SUPABASE_KEY =
 "sb_publishable_O4I7qGJYGfRkyg4rPIUnOA_m4g-Sdcl";
 
+/* Week number */
 function getWeekNumber() {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), 0, 1);
+    const diff = (now - start) / 86400000;
+    return Math.ceil((diff + start.getDay() + 1) / 7);
+}
 
-    const date = new Date();
+/* Current event week display */
+function getEventWeekStart() {
+    const now = new Date();
+    const sunday = new Date(now);
 
-    date.setHours(0,0,0,0);
+    sunday.setDate(now.getDate() - now.getDay());
+    sunday.setHours(0,0,0,0);
 
-    date.setDate(
-        date.getDate() + 3 - ((date.getDay() + 6) % 7)
-    );
-
-    const week1 = new Date(date.getFullYear(), 0, 4);
-
-    return (
-        1 +
-        Math.round(
-            (
-                ((date - week1) / 86400000)
-                - 3
-                + ((week1.getDay() + 6) % 7)
-            ) / 7
-        )
-    );
+    return sunday;
 }
 
 function displayCurrentWeek() {
+    const weekStart = getEventWeekStart();
 
-    document.getElementById("weekDisplay").innerText =
-        `Current Event Week: ${getWeekNumber()}`;
+    document.getElementById("weekDisplay").textContent =
+        "Current Event Week Started: " +
+        weekStart.toLocaleDateString();
 }
 
 displayCurrentWeek();
 
+/* Weekly signup counter */
 async function loadWeeklyCount() {
 
     try {
 
         const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=week_num`,
+            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=id`,
             {
-                headers:{
-                    "apikey":SUPABASE_KEY,
-                    "Authorization":"Bearer " + SUPABASE_KEY
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": `Bearer ${SUPABASE_KEY}`
                 }
             }
         );
 
-        if(!response.ok){
-            throw new Error(await response.text());
-        }
-
         const data = await response.json();
 
-        document.getElementById("signupCounter").innerText =
-            Array.isArray(data)
-            ? data.length
-            : 0;
+        document.getElementById("signupCounter").textContent =
+            Array.isArray(data) ? data.length : 0;
 
-    }
-    catch(error){
-
+    } catch (error) {
         console.error(error);
-
-        document.getElementById("signupCounter").innerText = "0";
     }
 }
 
 loadWeeklyCount();
 
+/* Submit check-in */
 async function submitCheckin() {
 
     const onlineName =
@@ -284,10 +245,9 @@ async function submitCheckin() {
     const button =
         document.getElementById("submitButton");
 
-    if(!onlineName || !alliance || !squadPower){
+    if (!onlineName || !alliance || !squadPower) {
 
         message.style.color = "red";
-
         message.innerHTML =
             "❌ Please complete all fields.";
 
@@ -295,41 +255,40 @@ async function submitCheckin() {
     }
 
     button.disabled = true;
-    button.innerText = "Submitting...";
+    button.textContent = "Submitting...";
 
     try {
 
         const response = await fetch(
             `${SUPABASE_URL}/rest/v1/checkins`,
             {
-                method:"POST",
-                headers:{
-                    "apikey":SUPABASE_KEY,
-                    "Authorization":"Bearer " + SUPABASE_KEY,
-                    "Content-Type":"application/json",
-                    "Prefer":"return=representation"
+                method: "POST",
+
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": `Bearer ${SUPABASE_KEY}`,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=representation"
                 },
-                body:JSON.stringify({
 
-                    week_num:getWeekNumber(),
+                body: JSON.stringify({
+                    week_num: getWeekNumber(),
 
-                    online_name:onlineName,
+                    online_name: onlineName,
 
                     online_name_normalized:
                         onlineName.toLowerCase(),
 
-                    alliance:alliance,
+                    alliance: alliance,
 
-                    first_squad_power:squadPower
-
+                    first_squad_power: squadPower
                 })
             }
         );
 
-        const result =
-            await response.text();
+        const result = await response.text();
 
-        if(response.ok){
+        if (response.ok) {
 
             message.style.color = "green";
 
@@ -341,21 +300,21 @@ async function submitCheckin() {
             document.getElementById("squadPower").value = "";
 
             loadWeeklyCount();
-        }
-        else {
 
-            if(
+        } else {
+
+            if (
                 result.toLowerCase().includes("duplicate") ||
                 result.toLowerCase().includes("unique") ||
                 result.includes("23505")
-            ){
+            ) {
 
                 message.style.color = "#d98200";
 
                 message.innerHTML =
                     `⚠️ <b>${onlineName}</b> has already checked in this week.`;
-            }
-            else{
+
+            } else {
 
                 message.style.color = "red";
 
@@ -364,8 +323,7 @@ async function submitCheckin() {
             }
         }
 
-    }
-    catch(error){
+    } catch (error) {
 
         console.error(error);
 
@@ -376,9 +334,8 @@ async function submitCheckin() {
     }
 
     button.disabled = false;
-    button.innerText = "Submit Weekly Check In";
+    button.textContent = "Submit Weekly Check In";
 }
-
 </script>
 
 </body>
