@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Check-In</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Arial,sans-serif;
+    background:#ffffff;
+}
+
+.container{
+    text-align:center;
+}
+
+h1{
+    font-size:42px;
+    margin-bottom:10px;
+}
+
+#weekDisplay{
+    color:#666;
+    margin-bottom:25px;
+}
+
+input{
+    width:300px;
+    padding:12px;
+    margin:8px 0;
+    font-size:16px;
+    border:1px solid #dcdcdc;
+    border-radius:24px;
+    text-align:center;
+}
+
+button{
+    margin-top:15px;
+    padding:12px 30px;
+    font-size:16px;
+    border:none;
+    border-radius:24px;
+    background:#4285f4;
+    color:white;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#3367d6;
+}
+
+#message{
+    margin-top:20px;
+    font-weight:bold;
+    line-height:1.5;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Event Check-In</h1>
+
+    <p id="weekDisplay"></p>
+
+    <input
+        id="onlineName"
+        type="text"
+        placeholder="Online Name"
+        required>
+
+    <br>
+
+    <input
+        id="alliance"
+        type="text"
+        placeholder="Alliance"
+        required>
+
+    <br>
+
+    <input
+        id="squadPower"
+        type="text"
+        placeholder="First Squad Power"
+        required>
+
+    <br>
+
+    <button onclick="submitCheckin()">
+        Check In
+    </button>
+
+    <p id="message"></p>
+
+</div>
+
+<script>
+
+const SUPABASE_URL =
+"https://akuiucyughszpnitzxju.supabase.co";
+
+const SUPABASE_KEY =
+"sb_publishable_ZFnwNTviFBtNsK8wXpCHvA_ikRhS9Uy";
+
+function getWeekNumber() {
+
+    const date = new Date();
+
+    date.setHours(0,0,0,0);
+
+    date.setDate(
+        date.getDate() + 3 - ((date.getDay() + 6) % 7)
+    );
+
+    const week1 = new Date(date.getFullYear(), 0, 4);
+
+    return (
+        1 +
+        Math.round(
+            (
+                ((date - week1) / 86400000)
+                - 3
+                + ((week1.getDay() + 6) % 7)
+            ) / 7
+        )
+    );
+}
+
+document.getElementById("weekDisplay").innerText =
+    `Week ${getWeekNumber()}`;
+
+async function submitCheckin() {
+
+    const onlineName =
+        document.getElementById("onlineName").value.trim();
+
+    const alliance =
+        document.getElementById("alliance").value.trim();
+
+    const squadPower =
+        document.getElementById("squadPower").value.trim();
+
+    const message =
+        document.getElementById("message");
+
+    if (!onlineName || !alliance || !squadPower) {
+
+        message.style.color = "red";
+        message.innerHTML =
+            "❌ Please complete all fields.";
+
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            `${SUPABASE_URL}/rest/v1/checkins`,
+            {
+                method: "POST",
+                headers: {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": "Bearer " + SUPABASE_KEY,
+                    "Content-Type": "application/json",
+                    "Prefer": "return=representation"
+                },
+                body: JSON.stringify({
+                    week_num: getWeekNumber(),
+                    online_name: onlineName,
+                    alliance: alliance,
+                    first_squad_power: squadPower
+                })
+            }
+        );
+
+        const result = await response.text();
+
+        console.log(result);
+
+        if (response.ok) {
+
+            message.style.color = "green";
+
+            message.innerHTML =
+                `✅ Thanks, <b>${onlineName}</b>!<br>
+                Your check-in for Week ${getWeekNumber()} has been recorded.`;
+
+            document.getElementById("onlineName").value = "";
+            document.getElementById("alliance").value = "";
+            document.getElementById("squadPower").value = "";
+        }
+        else {
+
+            if (
+                result.toLowerCase().includes("duplicate") ||
+                result.toLowerCase().includes("unique") ||
+                result.toLowerCase().includes("23505")
+            ) {
+
+                message.style.color = "orange";
+
+                message.innerHTML =
+                    `⚠️ <b>${onlineName}</b> has already checked in for Week ${getWeekNumber()}.`;
+            }
+            else {
+
+                message.style.color = "red";
+
+                message.innerHTML =
+                    `❌ Submission failed.<br><small>${result}</small>`;
+            }
+        }
+
+    }
+    catch (error) {
+
+        console.error(error);
+
+        message.style.color = "red";
+
+        message.innerHTML =
+            `❌ Connection error. Please try again.`;
+    }
+}
+
+</script>
+
+</body>
+</html>
