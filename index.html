@@ -190,6 +190,26 @@ function getWeekNumber() {
     return Math.ceil((diff + start.getDay() + 1) / 7);
 }
 
+function getWeekKey() {
+
+    const now = new Date();
+
+    const reset = new Date(now);
+
+    // Sunday
+    reset.setDate(now.getDate() - now.getDay());
+
+    // 1am reset time
+    reset.setHours(1, 0, 0, 0);
+
+    // Before Sunday's 1am = previous week
+    if (now < reset) {
+        reset.setDate(reset.getDate() - 7);
+    }
+
+    return reset.toISOString().split("T")[0];
+}
+
 /* Current event week display */
 function getEventWeekStart() {
     const now = new Date();
@@ -217,7 +237,7 @@ async function loadWeeklyCount() {
     try {
 
         const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=online_name`,
+            `${SUPABASE_URL}/rest/v1/checkins?week_key=eq.${getWeekKey()}&select=online_name,
             {
                 headers: {
                     "apikey": SUPABASE_KEY,
@@ -287,6 +307,8 @@ async function submitCheckin() {
 
                 body: JSON.stringify({
                     week_num: getWeekNumber(),
+
+                    week_key: getWeekKey(),
 
                     online_name: onlineName,
 
