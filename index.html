@@ -113,6 +113,12 @@ button:disabled{
     font-weight:bold;
     color:#4285f4;
 }
+
+.counter-subtitle{
+    font-size:12px;
+    color:#666;
+    margin-top:5px;
+}
 </style>
 </head>
 
@@ -129,6 +135,7 @@ Top Lords Kingdom 4 Weekly Event Check In
 <label>
 Name / 姓名 / नाम / Nombre / Nom / Name / الاسم / Имя
 </label>
+
 <input
 id="onlineName"
 type="text"
@@ -138,6 +145,7 @@ required>
 <label>
 Alliance / 聯盟 / गठबंधन / Alianza / Alliance / Allianz / التحالف / Альянс
 </label>
+
 <input
 id="alliance"
 type="text"
@@ -147,6 +155,7 @@ required>
 <label>
 Main Squad Power / 主力部隊戰力 / मुख्य दस्ते की शक्ति / Poder del Escuadrón Principal / Puissance de l'Escouade Principale / Stärke des Haupttrupps / قوة الفريق الرئيسي / Мощь основного отряда
 </label>
+
 <input
 id="squadPower"
 type="text"
@@ -174,6 +183,10 @@ Gesamtanmeldungen Diese Woche /
 
 <div id="signupCounter">0</div>
 
+<div class="counter-subtitle">
+Current Week Registrations
+</div>
+
 </div>
 
 </div>
@@ -188,41 +201,32 @@ const SUPABASE_KEY =
 
 function getWeekNumber() {
 
-    const now = new Date();
+    const date = new Date();
 
-    const start = new Date(now.getFullYear(), 0, 1);
+    date.setHours(0,0,0,0);
 
-    const diff =
-        (now - start) / 86400000;
-
-    return Math.ceil(
-        (diff + start.getDay() + 1) / 7
-    );
-}
-
-function getEventWeekStart() {
-
-    const now = new Date();
-
-    const sunday = new Date(now);
-
-    sunday.setDate(
-        now.getDate() - now.getDay()
+    date.setDate(
+        date.getDate() + 3 - ((date.getDay() + 6) % 7)
     );
 
-    sunday.setHours(0,0,0,0);
+    const week1 = new Date(date.getFullYear(), 0, 4);
 
-    return sunday.toISOString();
+    return (
+        1 +
+        Math.round(
+            (
+                ((date - week1) / 86400000)
+                - 3
+                + ((week1.getDay() + 6) % 7)
+            ) / 7
+        )
+    );
 }
 
 function displayCurrentWeek() {
 
-    const weekStart =
-        new Date(getEventWeekStart());
-
     document.getElementById("weekDisplay").innerText =
-        "Current Event Week Started: " +
-        weekStart.toLocaleDateString();
+        `Current Event Week: ${getWeekNumber()}`;
 }
 
 displayCurrentWeek();
@@ -231,11 +235,8 @@ async function loadWeeklyCount() {
 
     try {
 
-        const currentWeek =
-            getWeekNumber();
-
         const response = await fetch(
-            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${currentWeek}&select=id`,
+            `${SUPABASE_URL}/rest/v1/checkins?week_num=eq.${getWeekNumber()}&select=week_num`,
             {
                 headers:{
                     "apikey":SUPABASE_KEY,
@@ -244,14 +245,23 @@ async function loadWeeklyCount() {
             }
         );
 
-        const data =
-            await response.json();
+        if(!response.ok){
+            throw new Error(await response.text());
+        }
+
+        const data = await response.json();
 
         document.getElementById("signupCounter").innerText =
-            data.length;
+            Array.isArray(data)
+            ? data.length
+            : 0;
+
     }
     catch(error){
+
         console.error(error);
+
+        document.getElementById("signupCounter").innerText = "0";
     }
 }
 
@@ -293,30 +303,25 @@ async function submitCheckin() {
             `${SUPABASE_URL}/rest/v1/checkins`,
             {
                 method:"POST",
-
                 headers:{
                     "apikey":SUPABASE_KEY,
                     "Authorization":"Bearer " + SUPABASE_KEY,
                     "Content-Type":"application/json",
                     "Prefer":"return=representation"
                 },
-
                 body:JSON.stringify({
 
                     week_num:getWeekNumber(),
 
-                    event_week:getEventWeekStart(),
-
                     online_name:onlineName,
 
                     online_name_normalized:
-                        onlineName
-                            .trim()
-                            .toLowerCase(),
+                        onlineName.toLowerCase(),
 
                     alliance:alliance,
 
                     first_squad_power:squadPower
+
                 })
             }
         );
@@ -375,3 +380,6 @@ async function submitCheckin() {
 }
 
 </script>
+
+</body>
+</html>
